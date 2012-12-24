@@ -1,0 +1,16 @@
+#!/usr/bin/env ruby
+
+f = File.open('examples/handwriting/validation.txt')
+s = File.open('examples/handwriting/validation.dat', 'w')
+
+s.puts '100 256 10'
+
+f.readlines.drop(1).each do |line|
+  input = line.split[0..255].join ' '
+  output = line.split[256..265].join ' '
+  s.puts input
+  s.puts output
+end
+
+f.close
+s.close
