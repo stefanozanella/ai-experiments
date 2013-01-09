@@ -17,10 +17,7 @@ class MetricFetcher
   def fetch(interval = '5min', format = 'json')
     request = EM::HttpRequest.new("http://#{@host}/render/?target=transformNull(#{@metric},0)&from=-#{interval}&format=#{format}").get
     request.callback do |http|
-      puts http.response
-      puts "Preprocessing input metrics"
-      puts "Feeding the neural network"
-      puts "Printing the output"
+      self.succeed(http.response)
     end
   end
 end
@@ -35,5 +32,11 @@ EventMachine.run do
 
     puts "Fetching recent metrics"
     apache_requests.fetch
+    apache_requests.callback do |data|
+      puts data
+      puts "Preprocessing input metrics"
+      puts "Feeding the neural network"
+      puts "Printing the output"
+    end
   end
 end
