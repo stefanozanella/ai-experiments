@@ -3,7 +3,7 @@
 require 'bundler/setup'
 require 'ruby_fann/neural_network'
 
-train = RubyFann::TrainData.new(:filename => 'examples/handwriting/train.dat')
+train = RubyFann::TrainData.new(:filename => File.join(File.dirname(__FILE__), 'train.dat'))
 puts "Loaded examples: #{train.length}"
 
 fann = RubyFann::Standard.new(:num_inputs => 256, :hidden_neurons => [64], :num_outputs => 10)
@@ -15,13 +15,13 @@ mse_fake = fann.test_data(train)
 puts "Error: #{mse_fake}"
 
 puts "Testing network with validation set"
-validation = RubyFann::TrainData.new(:filename => 'examples/handwriting/validation.dat')
+validation = RubyFann::TrainData.new(:filename => File.join(File.dirname(__FILE__), 'validation.dat'))
 puts "Loaded examples: #{validation.length}"
 mse_good = fann.test_data(validation)
 puts "Error: #{mse_good}"
 
 puts "Building input from validation set"
-raw_input = File.open('examples/handwriting/validation.dat').readlines.drop(1)
+raw_input = File.open(File.join(File.dirname(__FILE__), 'validation.dat')).readlines.drop(1)
 
 error_count = 0
 examples_count = 0
