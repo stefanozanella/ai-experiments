@@ -4,5 +4,36 @@ require 'bundler/setup'
 
 require 'eventmachine'
 
+require 'em-http'
+
+class MetricFetcher
+  include EM::Deferrable
+
+  def initialize(host, metric)
+    @host = host
+    @metric = metric
+  end
+
+  def fetch(interval = '5min', format = 'json')
+    request = EM::HttpRequest.new("http://#{@host}/render/?target=transformNull(#{@metric},0)&from=-#{interval}&format=#{format}").get
+    request.callback do |http|
+      puts http.response
+      puts "Preprocessing input metrics"
+      puts "Feeding the neural network"
+      puts "Printing the output"
+    end
+  end
+end
+
 EventMachine.run do
+  host = 'monitoring.derecom.it'
+  metric = 'mercury_derecom_it_collectd.apache-derecom_it.apache_requests.value'
+  apache_requests = MetricFetcher.new host, metric
+
+  EventMachine.add_periodic_timer(5) do
+    puts "Entering main loop"
+
+    puts "Fetching recent metrics"
+    apache_requests.fetch
+  end
 end
