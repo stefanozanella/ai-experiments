@@ -11,6 +11,9 @@ GEM
       http_parser.rb (>= 0.5.3)
     em-socksify (0.2.1)
       eventmachine (>= 1.0.0.beta.4)
+    em-websocket (0.3.8)
+      addressable (>= 2.1.1)
+      eventmachine (>= 0.12.9)
     eventmachine (1.0.0)
     http_parser.rb (0.5.3)
     json (1.7.6)
@@ -22,6 +25,7 @@ PLATFORMS
 
 DEPENDENCIES
   em-http-request
+  em-websocket
   eventmachine
   json
   ruby-fann

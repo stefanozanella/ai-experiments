@@ -5,6 +5,7 @@ require 'bundler/setup'
 
 require 'eventmachine'
 require 'em-http'
+require 'em-websocket'
 require 'json'
 
 require 'metric_fetcher'
@@ -15,11 +16,32 @@ def compress(data)
   return data.map { |point| 2*point / max - 1 }
 end
 
-def notify_state(short_trend, long_trend, output)
+def notify_state(ws_conns, short_trend, long_trend, output)
   puts output
+  ws_conns.each do |socket|
+    socket.send(JSON.generate({
+      :short_trend => short_trend,
+      :long_trend => long_trend,
+      :alert_state => output
+    }))
+  end
 end
 
 EventMachine.run do
+  puts "Setup web server"
+  websocket_conns = []
+  EM::WebSocket.start(:host => "127.0.0.1", :port => 8080) do |ws|
+    ws.onopen do
+      puts "Received connection"
+      websocket_conns << ws
+    end
+
+    ws.onclose do
+      puts "Closed connection"
+      websocket_conns.delete(ws)
+    end
+  end
+
   host = 'monitoring.derecom.it'
   metric = 'mercury_derecom_it_collectd.apache-derecom_it.apache_requests.value'
   apache_requests = MetricFetcher.new host, metric
@@ -48,7 +70,7 @@ EventMachine.run do
       # Fake fake fake
     
       puts "Printing the output"
-      notify_state(sample[:short_term], sample[:long_term], output_map[output])
+      notify_state(websocket_conns, sample[:short_term], sample[:long_term], output_map[output])
     end
   end
 end

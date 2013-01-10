@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+
+</head>
+  
+  <body>
+    <div class="container">
+      <div class="alert_status">None</div>
+      <div id="short_term_graph" style="width: 400px; height: 300px;">N/A</div>
+      <div id="long_term_graph" style="width: 400px; height: 300px;">N/A</div>
+    </div>
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+    <script src="http://code.highcharts.com/highcharts.js"></script>
+
+    <script type="text/javascript">
+      $(document).ready(function() {
+        var short_options = {
+          chart: {
+            renderTo: 'short_term_graph',
+            type: 'line'
+          },
+
+          title: {
+            text: 'Apache Requests per second (last 5 minutes)'
+          },
+
+          xAxis: {
+            type: 'datetime',
+            
+            title: {
+              text: 'time'
+            },
+
+            labels: {
+              enabled: false
+            }
+          },
+
+          yAxis: {
+            title: {
+              text: 'req/s'
+            },
+
+            min: 0
+          },
+
+          plotOptions: {
+            series: {
+              marker: {
+                enabled: false
+              }
+            }
+          },
+
+          legend: {
+            enabled: false
+          },
+
+          series: [{
+            name: 'Requests per second',
+            data: []
+          }]
+        };
+        var short_term_graph = new Highcharts.Chart(short_options);
+
+        var long_options = {
+          chart: {
+            renderTo: 'long_term_graph',
+            type: 'line'
+          },
+
+          title: {
+            text: 'Apache Requests per second (last 24 hours)'
+          },
+
+          xAxis: {
+            type: 'datetime',
+            
+            title: {
+              text: 'time'
+            },
+
+            labels: {
+              enabled: false
+            }
+          },
+
+          yAxis: {
+            title: {
+              text: 'req/s'
+            },
+            
+            min: 0
+          },
+
+          legend: {
+            enabled: false
+          },
+
+          plotOptions: {
+            series: {
+              marker: {
+                enabled: false
+              }
+            }
+          },
+
+          series: [{
+            name: 'Requests per second',
+            data: []
+          }]
+        };
+        var long_term_graph = new Highcharts.Chart(long_options);
+
+
+        var updateMetricSnapshot = function(snapshot) {
+          $('.alert_status').text(snapshot.alert_state);
+          short_term_graph.series[0].setData(snapshot.short_trend);
+          long_term_graph.series[0].setData(snapshot.long_trend);
+        };
+
+        var socket = new WebSocket('ws://0.0.0.0:8080/');
+  
+        socket.onopen = function() {
+          console.log("Socket opened");
+        };
+  
+        socket.onmessage = function(message) {
+          var snapshot = JSON.parse(message.data);
+          console.log(snapshot);
+          updateMetricSnapshot(snapshot);
+        };
+  
+        socket.onclose = function() {
+          console.log("Socket closed");
+        };
+      })
+    </script>
+  </body>
+</html>
