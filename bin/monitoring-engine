@@ -31,23 +31,10 @@ class MetricFetcher
   end
 end
 
-def process(data)
-  puts "Preprocessing input metrics"
+def compress(data)
+  # Cache max value
   max = data.max
-  normalized_data = data.map { |point| 2*point/max - 1 } 
-  puts normalized_data.length
-  puts "Feeding the neural network"
-  # Fake fake fake
-  k = (1 << Random.new.rand(0..2))
-  output = [ k[2], k[1], k[0] ]
-  # Fake fake fake
-
-  puts "Printing the output"
-  output_map = {
-          [0,0,1] => :normal,
-          [0,1,0] => :warning,
-          [1,0,0] => :critical }
-  puts output_map[output]
+  return data.map { |point| 2*point / max - 1 }
 end
 
 EventMachine.run do
@@ -61,7 +48,25 @@ EventMachine.run do
     puts "Fetching recent metrics"
     apache_requests.fetch
     apache_requests.callback do |sample|
-      process(sample[:short_term])
+      puts "Preprocessing metrics"
+      normalized_short = compress(sample[:short_term])
+      normalized_long = compress(sample[:long_term])
+
+      puts normalized_short.length
+      puts normalized_long.length
+
+      puts "Feeding the neural network"
+      # Fake fake fake
+      k = (1 << Random.new.rand(0..2))
+      output = [ k[2], k[1], k[0] ]
+      # Fake fake fake
+    
+      puts "Printing the output"
+      output_map = {
+              [0,0,1] => :normal,
+              [0,1,0] => :warning,
+              [1,0,0] => :critical }
+      puts output_map[output]
     end
   end
 end
