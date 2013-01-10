@@ -15,12 +15,39 @@ class MetricFetcher
     @metric = metric
   end
 
-  def fetch(interval = '5min', format = 'json')
-    request = EM::HttpRequest.new("http://#{@host}/render/?target=transformNull(#{@metric},0)&from=-#{interval}&format=#{format}").get
-    request.callback do 
-      self.succeed(JSON.parse(request.response)[0]["datapoints"].map { |point| point[0] })
+  def fetch(short_interval = '5min', long_interval = '24h', format = 'json')
+    short_term_request = EM::HttpRequest.new("http://#{@host}/render/?target=transformNull(#{@metric},0)&from=-#{short_interval}&format=#{format}").get
+    long_term_request = EM::HttpRequest.new("http://#{@host}/render/?target=summarize(transformNull(#{@metric},0),\"300s\",\"avg\")&from=-#{long_interval}&format=#{format}").get
+
+    multi = EM::MultiRequest.new
+    multi.add :short, short_term_request
+    multi.add :long, long_term_request
+    multi.callback do 
+      sample = {
+              :long_term => JSON.parse(long_term_request.response)[0]["datapoints"].map { |point| point[0] },
+              :short_term => JSON.parse(short_term_request.response)[0]["datapoints"].map { |point| point[0] } }
+      self.succeed(sample)
     end
   end
+end
+
+def process(data)
+  puts "Preprocessing input metrics"
+  max = data.max
+  normalized_data = data.map { |point| 2*point/max - 1 } 
+  puts normalized_data.length
+  puts "Feeding the neural network"
+  # Fake fake fake
+  k = (1 << Random.new.rand(0..2))
+  output = [ k[2], k[1], k[0] ]
+  # Fake fake fake
+
+  puts "Printing the output"
+  output_map = {
+          [0,0,1] => :normal,
+          [0,1,0] => :warning,
+          [1,0,0] => :critical }
+  puts output_map[output]
 end
 
 EventMachine.run do
@@ -33,24 +60,8 @@ EventMachine.run do
 
     puts "Fetching recent metrics"
     apache_requests.fetch
-    apache_requests.callback do |data|
-
-      puts "Preprocessing input metrics"
-      max = data.max
-      normalized_data = data.map { |point| 2*point/max - 1 } 
-
-      puts "Feeding the neural network"
-      # Fake fake fake
-      k = (1 << Random.new.rand(0..2))
-      output = [ k[2], k[1], k[0] ]
-      # Fake fake fake
-
-      puts "Printing the output"
-      output_map = {
-              [0,0,1] => :normal,
-              [0,1,0] => :warning,
-              [1,0,0] => :critical }
-      puts output_map[output]
+    apache_requests.callback do |sample|
+      process(sample[:short_term])
     end
   end
 end
