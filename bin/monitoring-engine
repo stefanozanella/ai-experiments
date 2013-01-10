@@ -5,6 +5,7 @@ require 'bundler/setup'
 require 'eventmachine'
 
 require 'em-http'
+require 'json'
 
 class MetricFetcher
   include EM::Deferrable
@@ -16,8 +17,8 @@ class MetricFetcher
 
   def fetch(interval = '5min', format = 'json')
     request = EM::HttpRequest.new("http://#{@host}/render/?target=transformNull(#{@metric},0)&from=-#{interval}&format=#{format}").get
-    request.callback do |http|
-      self.succeed(http.response)
+    request.callback do 
+      self.succeed(JSON.parse(request.response)[0]["datapoints"].map { |point| point[0] })
     end
   end
 end
@@ -33,10 +34,23 @@ EventMachine.run do
     puts "Fetching recent metrics"
     apache_requests.fetch
     apache_requests.callback do |data|
-      puts data
+
       puts "Preprocessing input metrics"
+      max = data.max
+      normalized_data = data.map { |point| 2*point/max - 1 } 
+
       puts "Feeding the neural network"
+      # Fake fake fake
+      k = (1 << Random.new.rand(0..2))
+      output = [ k[2], k[1], k[0] ]
+      # Fake fake fake
+
       puts "Printing the output"
+      output_map = {
+              [0,0,1] => :normal,
+              [0,1,0] => :warning,
+              [1,0,0] => :critical }
+      puts output_map[output]
     end
   end
 end
