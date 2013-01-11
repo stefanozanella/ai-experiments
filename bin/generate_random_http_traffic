@@ -1,0 +1,9 @@
+#!/usr/bin/env ruby
+
+require 'eventmachine'
+require 'em-http'
+
+EventMachine.run do
+  url = "http://www.derecom.it"
+  puts "Generating random HTTP traffic on #{url}"
+end
