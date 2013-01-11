@@ -1,0 +1,95 @@
+#!/usr/bin/env ruby
+$:.unshift File.join(File.dirname(__FILE__),"..","lib")
+
+require 'bundler/setup'
+
+require 'eventmachine'
+require 'em-http'
+require 'json'
+
+require 'metric_fetcher'
+
+def compress(data)
+  # Cache max value
+  max = data.max
+  return data.map { |point| 2*point / max - 1 }
+end
+
+def split_time_range(from_time, to_time, tick)
+  time = to_time
+  res = []
+  while time >= from_time
+    res << time
+    time -= tick
+  end
+  return res
+end
+
+def minutes(time)
+  time * 60
+end
+
+def earliest_sample_end_with(min_time, range_interval)
+  return min_time + range_interval
+end
+
+def at(time)
+  time.strftime("%H:%M_%Y%m%d")
+end
+
+EventMachine.run do
+  host = 'monitoring.derecom.it'
+  metric = 'mercury_derecom_it_collectd.apache-derecom_it.apache_requests.value'
+  fetch_from = '18:00_20130110'
+  fetch_to = '18:05_20130110'
+  shift = 1
+  short_range = 5
+
+  fetch_from_time = Time.parse(fetch_from)
+  fetch_to_time = Time.parse(fetch_to)
+
+  puts "Fetching metrics from #{fetch_from_time} to #{fetch_to_time} in #{shift} minutes intervals"
+  time_array = split_time_range(earliest_sample_end_with(fetch_from_time, minutes(short_range)), fetch_to_time, minutes(shift))
+
+  EM::Iterator.new(time_array, 20).map(proc { |sample_end,iter|
+    puts "Fetching metrics until #{at(sample_end)} for #{short_range}min"
+    
+    # If I don't create a new object each iteration, MetricFetcher crashes.
+    # If I create a new object here, it crashes if concurrent requests are e.g.
+    # 50. Seems to work fine with 20.
+    # Suspected issue with MultiRequest and/or Graphite not responding correctly
+    apache_requests = MetricFetcher.new host, metric
+    apache_requests.fetch :up_to => at(sample_end), :short_interval => "#{short_range}min"
+    apache_requests.callback do |sample|
+      #puts "Preprocessing metrics"
+      normalized_short = compress(sample[:short_term])
+      normalized_long = compress(sample[:long_term])
+  
+      #puts normalized_short.length
+      #puts normalized_long.length
+  
+      #puts "Setting output value"
+      output_map = {
+        :normal   => [0,0,1],
+        :warning  => [0,1,0],
+        :critical => [1,0,0] }
+    
+      iter.return [normalized_short, normalized_long, output_map[:normal]]
+    end
+    apache_requests.errback do |error|
+      puts error
+      iter.return
+    end
+  }, proc { |samples|
+    puts "Got #{samples.length} training samples"
+
+    # TODO Read current training data from file
+    training_file = File.join File.dirname(__FILE__), "..", "ext", "training.dat"
+    training_data = File.new(training_file, 'w')
+    # TODO Add samples to current training data
+    # TODO (Scramble array)
+    # TODO Write training data to file
+    training_data.close
+    EventMachine.stop
+  })
+end
