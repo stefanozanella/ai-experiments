@@ -40,8 +40,8 @@ end
 EventMachine.run do
   host = 'monitoring.derecom.it'
   metric = 'mercury_derecom_it_collectd.apache-derecom_it.apache_requests.value'
-  fetch_from = '18:00_20130110'
-  fetch_to = '18:05_20130110'
+  fetch_from = '07:30_20130111'
+  fetch_to = '11:30_20130111'
   shift = 1
   short_range = 5
 
@@ -74,7 +74,7 @@ EventMachine.run do
         :warning  => [0,1,0],
         :critical => [1,0,0] }
     
-      iter.return [normalized_short, normalized_long, output_map[:normal]]
+      iter.return({ :input => normalized_short.concat(normalized_long), :output => output_map[:normal] })
     end
     apache_requests.errback do |error|
       puts error
@@ -85,11 +85,32 @@ EventMachine.run do
 
     # TODO Read current training data from file
     training_file = File.join File.dirname(__FILE__), "..", "ext", "training.dat"
-    training_data = File.new(training_file, 'w')
+    training_set = []
+
+    File.open(training_file, 'r') do |training_data|
+      training_data.gets
+      while (input_sample = training_data.gets)
+        output_sample = training_data.gets
+        training_set << { :input => input_sample.split(' ').map { |i| i.to_f }, 
+                          :output => output_sample.split(' ').map{ |o| o.to_f } }
+      end
+    end if File.exists? training_file
+
     # TODO Add samples to current training data
+    training_set = training_set.concat samples
+
     # TODO (Scramble array)
+    #training_set.shuffle!
+
     # TODO Write training data to file
-    training_data.close
+    File.open(training_file, 'w') do |training_data|
+      training_data.puts [training_set.length, training_set[0][:input].length, training_set[0][:output].length].join(' ')
+      training_set.each do |training_sample|
+        training_data.puts(training_sample[:input].join(' '))
+        training_data.puts(training_sample[:output].join(' '))
+      end
+    end
+
     EventMachine.stop
   })
 end
