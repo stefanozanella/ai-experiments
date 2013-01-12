@@ -29,6 +29,8 @@ def notify_state(ws_conns, short_trend, long_trend, output)
   end
 end
 
+engine = RubyFann::Standard.new(:filename => File.join(File.dirname(__FILE__),'..','ext','engine.fann'))
+
 EventMachine.run do
   puts "Setup web server"
   websocket_conns = []
@@ -62,20 +64,25 @@ EventMachine.run do
       puts normalized_long.length
 
       puts "Feeding the neural network"
-      output = fann.run(normalized_short.concat normalized_long)
-      output.map! { |o| o.round }
-      output_map = {
-              [0,0,1] => :normal,
-              [0,1,0] => :warning,
-              [1,0,0] => :critical }
+      output = engine.run(normalized_short.concat normalized_long)
 
+      puts "Network response:"
+      puts output.to_s
+      
+      output_map = [:critical, :warning, :normal]
+      recognized_state = output_map[output.index output.max]
+      puts "Response: #{recognized_state}"
       # Fake fake fake
       #k = (1 << Random.new.rand(0..2))
+      #output_map = {
+      #        [0,0,1] => :normal,
+      #        [0,1,0] => :warning,
+      #        [1,0,0] => :critical }
       #output = [ k[2], k[1], k[0] ]
       # Fake fake fake
     
-      puts "Printing the output"
-      notify_state(websocket_conns, sample[:short_term], sample[:long_term], output_map[output])
+      #puts "Printing the output"
+      notify_state(websocket_conns, sample[:short_term], sample[:long_term], recognized_state)
     end
   end
 end

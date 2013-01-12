@@ -7,6 +7,8 @@ training_set = RubyFann::TrainData.new(:filename => File.join(File.dirname(__FIL
 puts "Loaded #{training_set.length} examples"
 
 fann = RubyFann::Standard.new(:num_inputs => 349, :num_outputs => 3, :hidden_neurons => [128])
+fann.set_activation_function_hidden :sigmoid_symmetric
+fann.set_activation_function_output :sigmoid
 
 train_start = Time.now
 fann.train_on_data(training_set, 2*10**6, 1, 0.01)
