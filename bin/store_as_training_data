@@ -40,12 +40,51 @@ end
 EventMachine.run do
   host = 'monitoring.derecom.it'
   metric = 'mercury_derecom_it_collectd.apache-derecom_it.apache_requests.value'
-  #fetch_from = '07:30_20130111'
+  
+  #fetch_from = '08:00_20130111'
   #fetch_to = '11:30_20130111'
   #output_class = :normal
-  fetch_from = '15:10_20130111'
-  fetch_to = '16:20_20130111'
+  
+  #fetch_from = '15:10_20130111'
+  #fetch_to = '16:20_20130111'
+  #output_class = :warning
+
+  #fetch_from = '09:20_20130112'
+  #fetch_to = '09:40_20130112'
+  #output_class = :warning
+
+  #fetch_from = '03:40_20130111'
+  #fetch_to = '04:12_20130111'
+  #output_class = :warning
+
+  #fetch_from = '19:24_20130111'
+  #fetch_to = '19:29_20130111'
+  #output_class = :warning
+
+  fetch_from = '03:34_20130110'
+  fetch_to = '04:10_20130110'
   output_class = :warning
+
+  #fetch_from = '23:59_20130111'
+  #fetch_to = '00:12_20130112'
+  #output_class = :critical
+
+  #fetch_from = '19:29_20130111'
+  #fetch_to = '19:32_20130111'
+  #output_class = :critical
+
+  #fetch_from = '23:59_20130110'
+  #fetch_to = '00:12_20130111'
+  #output_class = :critical
+
+  #fetch_from = '19:54_20130111'
+  #fetch_to = '20:00_20130111'
+  #output_class = :critical
+
+  #fetch_from = '23:59_20130109'
+  #fetch_to = '00:22_20130110'
+  #output_class = :critical
+
   shift = 1
   short_range = 5
 
@@ -53,7 +92,7 @@ EventMachine.run do
   fetch_to_time = Time.parse(fetch_to)
 
   puts "Fetching metrics from #{fetch_from_time} to #{fetch_to_time} in #{shift} minutes intervals"
-  time_array = split_time_range(earliest_sample_end_with(fetch_from_time, minutes(short_range)), fetch_to_time, minutes(shift))
+  time_array = split_time_range(fetch_from_time, fetch_to_time, minutes(shift))
 
   EM::Iterator.new(time_array, 20).map(proc { |sample_end,iter|
     puts "Fetching metrics until #{at(sample_end)} for #{short_range}min"

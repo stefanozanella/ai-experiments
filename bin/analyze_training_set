@@ -1,0 +1,20 @@
+#!/usr/bin/env ruby
+
+filename = File.join(File.dirname(__FILE__),'..','ext','training.dat')
+
+File.open filename do |training_set|
+  samples, inputs, outputs = training_set.gets.split(' ')
+  puts "Found #{samples} samples"
+  puts "Input size: #{inputs} -- Output size: #{outputs}"
+
+  bucket = Hash.new(0)
+  while (input_line = training_set.gets)
+    sample_output = training_set.gets.split(' ').map { |k| k.to_f }
+    bucket[sample_output] += 1
+  end
+
+  puts "Samples distribution:"
+  bucket.each do |k,v|
+    puts "#{k.to_s} ==> #{v}"
+  end
+end
