@@ -26,7 +26,7 @@ def split_time_range(from_time, to_time, tick)
 end
 
 def minutes(time)
-  time * 60
+  (time * 60).round
 end
 
 def earliest_sample_end_with(min_time, range_interval)
@@ -42,8 +42,12 @@ EventMachine.run do
   metric = 'mercury_derecom_it_collectd.apache-derecom_it.apache_requests.value'
   
   #fetch_from = '08:00_20130111'
-  #fetch_to = '11:30_20130111'
+  #fetch_to = '09:30_20130111'
   #output_class = :normal
+  
+  fetch_from = '10:00_20130111'
+  fetch_to = '10:30_20130111'
+  output_class = :normal
   
   #fetch_from = '15:10_20130111'
   #fetch_to = '16:20_20130111'
@@ -61,9 +65,13 @@ EventMachine.run do
   #fetch_to = '19:29_20130111'
   #output_class = :warning
 
-  fetch_from = '03:34_20130110'
-  fetch_to = '04:10_20130110'
-  output_class = :warning
+  #fetch_from = '03:34_20130110'
+  #fetch_to = '04:10_20130110'
+  #output_class = :warning
+
+  #fetch_from = '17:49_20130112'
+  #fetch_to = '18:04_20130112'
+  #output_class = :warning
 
   #fetch_from = '23:59_20130111'
   #fetch_to = '00:12_20130112'
@@ -83,6 +91,10 @@ EventMachine.run do
 
   #fetch_from = '23:59_20130109'
   #fetch_to = '00:22_20130110'
+  #output_class = :critical
+
+  #fetch_from = '16:44_20130112'
+  #fetch_to = '17:49_20130112'
   #output_class = :critical
 
   shift = 1

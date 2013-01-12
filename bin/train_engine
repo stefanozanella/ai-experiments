@@ -1,0 +1,23 @@
+#!/usr/bin/env ruby
+
+require 'bundler/setup'
+require 'ruby_fann/neural_network'
+
+training_set = RubyFann::TrainData.new(:filename => File.join(File.dirname(__FILE__), '..', 'ext', 'training.dat'))
+puts "Loaded #{training_set.length} examples"
+
+fann = RubyFann::Standard.new(:num_inputs => 349, :num_outputs => 3, :hidden_neurons => [128])
+
+train_start = Time.now
+fann.train_on_data(training_set, 2*10**6, 1, 0.01)
+train_stop = Time.now
+
+puts "Testing network with same data as training"
+mse_fake = fann.test_data(training_set)
+
+puts "Error: #{mse_fake}"
+
+puts "Network trained in #{train_stop - train_start} seconds"
+
+puts "Saving trained Neural Network for online use"
+fann.save(File.join(File.dirname(__FILE__), '..', 'ext', 'engine.fann'))
