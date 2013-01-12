@@ -58,13 +58,15 @@ EventMachine.run do
     apache_requests.callback do |sample|
       puts "Preprocessing metrics"
       normalized_short = compress(sample[:short_term])
+      normalized_mid = compress(sample[:mid_term])
       normalized_long = compress(sample[:long_term])
 
       puts normalized_short.length
+      puts normalized_mid.length
       puts normalized_long.length
 
       puts "Feeding the neural network"
-      output = engine.run(normalized_short.concat normalized_long)
+      output = engine.run([normalized_short, normalized_mid, normalized_long].flatten)
 
       puts "Network response:"
       puts output.to_s

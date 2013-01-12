@@ -45,13 +45,13 @@ EventMachine.run do
   #fetch_to = '09:30_20130111'
   #output_class = :normal
   
-  fetch_from = '10:00_20130111'
-  fetch_to = '10:30_20130111'
-  output_class = :normal
+  #fetch_from = '10:00_20130111'
+  #fetch_to = '10:30_20130111'
+  #output_class = :normal
   
-  #fetch_from = '15:10_20130111'
-  #fetch_to = '16:20_20130111'
-  #output_class = :warning
+  fetch_from = '15:10_20130111'
+  fetch_to = '16:20_20130111'
+  output_class = :warning
 
   #fetch_from = '09:20_20130112'
   #fetch_to = '09:40_20130112'
@@ -106,7 +106,7 @@ EventMachine.run do
   puts "Fetching metrics from #{fetch_from_time} to #{fetch_to_time} in #{shift} minutes intervals"
   time_array = split_time_range(fetch_from_time, fetch_to_time, minutes(shift))
 
-  EM::Iterator.new(time_array, 20).map(proc { |sample_end,iter|
+  EM::Iterator.new(time_array, 1).map(proc { |sample_end,iter|
     puts "Fetching metrics until #{at(sample_end)} for #{short_range}min"
     
     # If I don't create a new object each iteration, MetricFetcher crashes.
@@ -118,6 +118,7 @@ EventMachine.run do
     apache_requests.callback do |sample|
       #puts "Preprocessing metrics"
       normalized_short = compress(sample[:short_term])
+      normalized_mid = compress(sample[:mid_term])
       normalized_long = compress(sample[:long_term])
   
       #puts normalized_short.length
@@ -125,11 +126,11 @@ EventMachine.run do
   
       #puts "Setting output value"
       output_map = {
-        :normal   => [0,0,1],
-        :warning  => [0,1,0],
-        :critical => [1,0,0] }
+        :normal   => [-1,-1,1],
+        :warning  => [-1,1,-1],
+        :critical => [1,-1,-1] }
     
-      iter.return({ :input => normalized_short.concat(normalized_long), :output => output_map[output_class] })
+      iter.return({ :input => [normalized_short, normalized_mid, normalized_long].flatten, :output => output_map[output_class] })
     end
     apache_requests.errback do |error|
       puts error
