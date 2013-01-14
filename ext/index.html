@@ -1,18 +1,24 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
+    <title>Monitoring Engine Frontend</title>
     <meta charset="utf-8" />
-
-</head>
+    <link
+    href="http://netdna.bootstrapcdn.com/twitter-bootstrap/2.2.2/css/bootstrap-combined.min.css"
+    rel="stylesheet">
+  </head>
   
   <body>
     <div class="container">
-      <div class="alert_status">None</div>
-      <div id="short_term_graph" style="width: 400px; height: 300px;">N/A</div>
-      <div id="long_term_graph" style="width: 400px; height: 300px;">N/A</div>
+      <div class="alert_status label" style="width: 750px; margin: 10px
+      0px; padding: 0px 20px;"><h3>Monitoring not active</h3></div>
+      <div id="short_term_graph" style="width: 750px; height: 400px;">N/A</div>
+      <div id="long_term_graph" style="width: 750px; height: 400px;">N/A</div>
     </div>
     <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
     <script src="http://code.highcharts.com/highcharts.js"></script>
+    <script
+    src="http://netdna.bootstrapcdn.com/twitter-bootstrap/2.2.2/js/bootstrap.min.js"></script>
 
     <script type="text/javascript">
       $(document).ready(function() {
@@ -72,7 +78,7 @@
           },
 
           title: {
-            text: 'Apache Requests per second (last 24 hours)'
+            text: 'Apache Requests per second (last 60 minutes)'
           },
 
           xAxis: {
@@ -116,9 +122,18 @@
 
 
         var updateMetricSnapshot = function(snapshot) {
-          $('.alert_status').text(snapshot.alert_state);
+          if (snapshot.alert_state == "normal") {
+            $('.alert_status > h3').text('System is acting normally');
+            $('.alert_status').removeClass().addClass('alert_status label label-success');
+          } else if (snapshot.alert_state == "warning") {
+            $('.alert_status > h3').text('Noticed strange behavior');
+            $('.alert_status').removeClass().addClass('alert_status label label-warning');
+          } else if (snapshot.alert_state == "critical") {
+            $('.alert_status > h3').text('System is critical!');
+            $('.alert_status').removeClass().addClass('alert_status label label-important');
+          }
           short_term_graph.series[0].setData(snapshot.short_trend);
-          long_term_graph.series[0].setData(snapshot.long_trend);
+          long_term_graph.series[0].setData(snapshot.mid_trend);
         };
 
         var socket = new WebSocket('ws://0.0.0.0:8080/');

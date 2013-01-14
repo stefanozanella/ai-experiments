@@ -1,3 +1,14 @@
+#require 'graphite_url_builder'
+class GraphiteUrlBuilder
+  def initialize(host)
+    @host = host
+  end
+
+  def to_s
+    "http://#{@host}/render/?"
+  end
+end
+
 class MetricFetcher
   include EM::Deferrable
 
@@ -8,14 +19,15 @@ class MetricFetcher
 
   def fetch(opts = {})
     short_interval = opts[:short_interval] || '5min'
-    mid_interval   = opts[:mid_interval]  || '1h'
+    mid_interval   = opts[:mid_interval]   || '1h'
     long_interval  = opts[:long_interval]  || '24h'
     up_to          = opts[:up_to]          || 'now'
     format         = opts[:format]         || 'json'
 
-    short_term_request = EM::HttpRequest.new("http://#{@host}/render/?target=transformNull(#{@metric},0)&from=#{up_to}-#{short_interval}&until=#{up_to}&format=#{format}").get
-    mid_term_request = EM::HttpRequest.new("http://#{@host}/render/?target=transformNull(summarize(transformNull(#{@metric},0),\"60s\",\"avg\"),0)&from=#{up_to}-#{mid_interval}&until=#{up_to}&format=#{format}").get
-    long_term_request = EM::HttpRequest.new("http://#{@host}/render/?target=transformNull(summarize(transformNull(#{@metric},0),\"300s\",\"avg\"),0)&from=#{up_to}-#{long_interval}&until=#{up_to}&format=#{format}").get
+    url_builder = GraphiteUrlBuilder.new(@host)
+    short_term_request = EM::HttpRequest.new("#{url_builder}target=transformNull(#{@metric},0)&from=#{up_to}-#{short_interval}&until=#{up_to}&format=#{format}").get
+    mid_term_request = EM::HttpRequest.new("#{url_builder}target=transformNull(summarize(transformNull(#{@metric},0),\"60s\",\"avg\"),0)&from=#{up_to}-#{mid_interval}&until=#{up_to}&format=#{format}").get
+    long_term_request = EM::HttpRequest.new("#{url_builder}target=transformNull(summarize(transformNull(#{@metric},0),\"300s\",\"avg\"),0)&from=#{up_to}-#{long_interval}&until=#{up_to}&format=#{format}").get
 
     multi = EM::MultiRequest.new
     multi.add :short, short_term_request

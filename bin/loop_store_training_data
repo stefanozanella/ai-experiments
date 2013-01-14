@@ -1,0 +1,18 @@
+#!/usr/bin/env ruby
+
+intervals_file = File.join(File.dirname(__FILE__),'..','ext','intervals')
+
+intervals = []
+File.open(intervals_file, 'r') do |file|
+  while (interval_line = file.gets)
+    from, to, output_class = interval_line.split(' ')
+    intervals << {
+      from: from,
+      to: to,
+      output_class: output_class}
+  end
+end
+
+intervals.each do |interval|
+  puts `bin/store_as_training_data #{interval[:from]} #{interval[:to]} #{interval[:output_class]}`
+end

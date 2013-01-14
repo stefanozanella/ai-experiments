@@ -18,11 +18,12 @@ def compress(data)
   return data.map { |point| 2*point / max - 1 }
 end
 
-def notify_state(ws_conns, short_trend, long_trend, output)
+def notify_state(ws_conns, short_trend, mid_trend, long_trend, output)
   puts output
   ws_conns.each do |socket|
     socket.send(JSON.generate({
       :short_trend => short_trend,
+      :mid_trend => mid_trend,
       :long_trend => long_trend,
       :alert_state => output
     }))
@@ -84,7 +85,7 @@ EventMachine.run do
       # Fake fake fake
     
       #puts "Printing the output"
-      notify_state(websocket_conns, sample[:short_term], sample[:long_term], recognized_state)
+      notify_state(websocket_conns, sample[:short_term], sample[:mid_term], sample[:long_term], recognized_state)
     end
   end
 end

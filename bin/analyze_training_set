@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 
-filename = File.join(File.dirname(__FILE__),'..','ext','training.dat')
+filename = File.join(File.dirname(__FILE__),'..', ARGV.shift)
 
 File.open filename do |training_set|
   samples, inputs, outputs = training_set.gets.split(' ')

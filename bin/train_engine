@@ -3,22 +3,71 @@
 require 'bundler/setup'
 require 'ruby_fann/neural_network'
 
-training_set = RubyFann::TrainData.new(:filename => File.join(File.dirname(__FILE__), '..', 'ext', 'training.dat'))
+class OverfittingControlANN < RubyFann::Standard
+  attr_accessor :validation_set
+
+  def initialize(hash)
+    super(hash)
+    @current_mse = 1
+  end
+
+  def training_callback(args)
+    if validation_set
+      mse = self.test_data(validation_set)
+      puts "Validation error: #{mse}"
+      if mse < @current_mse
+        @current_mse = mse
+        return 1
+      else
+        return -1
+      end
+    end
+    0
+  end
+end
+
+training_set = RubyFann::TrainData.new(:filename => File.join(File.dirname(__FILE__), '..', ARGV.shift))
+validation_set = RubyFann::TrainData.new(:filename => File.join(File.dirname(__FILE__), '..', ARGV.shift))
 puts "Loaded #{training_set.length} examples"
 
-fann = RubyFann::Standard.new(:num_inputs => 349, :num_outputs => 3, :hidden_neurons => [128])
+fann = OverfittingControlANN.new(:num_inputs => 410, :num_outputs => 3, :hidden_neurons => [256])
+fann.validation_set = validation_set
 fann.set_activation_function_hidden :sigmoid_symmetric
 fann.set_activation_function_output :sigmoid
+fann.set_bit_fail_limit 0.20
+fann.set_train_stop_function :bit
 
 train_start = Time.now
-fann.train_on_data(training_set, 2*10**6, 1, 0.01)
+fann.train_on_data(training_set, 2*10**6, 20, 0.00001)
 train_stop = Time.now
 
 puts "Testing network with same data as training"
 mse_fake = fann.test_data(training_set)
-
 puts "Error: #{mse_fake}"
 
+puts "Testing network with test set"
+test_file = File.join(File.dirname(__FILE__), '..', ARGV.shift)
+test_set = RubyFann::TrainData.new(:filename => test_file)
+mse = fann.test_data(test_set)
+puts "Error: #{mse}"
+
+puts "Simultaing run on test set"
+raw_input = File.open(test_file).readlines.drop(1)
+error_count = 0 
+examples_count = 0 
+while raw_input.length > 0 do
+  input = raw_input.shift.split.map { |k| Float k } 
+  expected_output = raw_input.shift.split
+
+  output = fann.run(input)
+  recognized_output = output.index output.max
+  expected_output = expected_output.index expected_output.max
+  puts "#{recognized_output} == #{expected_output}"
+  error_count +=1 if recognized_output != expected_output
+  examples_count += 1
+end
+
+puts "Error rate on global run: #{error_count.to_f / examples_count * 100 }"
 puts "Network trained in #{train_stop - train_start} seconds"
 
 puts "Saving trained Neural Network for online use"

@@ -41,61 +41,9 @@ EventMachine.run do
   host = 'monitoring.derecom.it'
   metric = 'mercury_derecom_it_collectd.apache-derecom_it.apache_requests.value'
   
-  #fetch_from = '08:00_20130111'
-  #fetch_to = '09:30_20130111'
-  #output_class = :normal
-  
-  #fetch_from = '10:00_20130111'
-  #fetch_to = '10:30_20130111'
-  #output_class = :normal
-  
-  fetch_from = '15:10_20130111'
-  fetch_to = '16:20_20130111'
-  output_class = :warning
-
-  #fetch_from = '09:20_20130112'
-  #fetch_to = '09:40_20130112'
-  #output_class = :warning
-
-  #fetch_from = '03:40_20130111'
-  #fetch_to = '04:12_20130111'
-  #output_class = :warning
-
-  #fetch_from = '19:24_20130111'
-  #fetch_to = '19:29_20130111'
-  #output_class = :warning
-
-  #fetch_from = '03:34_20130110'
-  #fetch_to = '04:10_20130110'
-  #output_class = :warning
-
-  #fetch_from = '17:49_20130112'
-  #fetch_to = '18:04_20130112'
-  #output_class = :warning
-
-  #fetch_from = '23:59_20130111'
-  #fetch_to = '00:12_20130112'
-  #output_class = :critical
-
-  #fetch_from = '19:29_20130111'
-  #fetch_to = '19:32_20130111'
-  #output_class = :critical
-
-  #fetch_from = '23:59_20130110'
-  #fetch_to = '00:12_20130111'
-  #output_class = :critical
-
-  #fetch_from = '19:54_20130111'
-  #fetch_to = '20:00_20130111'
-  #output_class = :critical
-
-  #fetch_from = '23:59_20130109'
-  #fetch_to = '00:22_20130110'
-  #output_class = :critical
-
-  #fetch_from = '16:44_20130112'
-  #fetch_to = '17:49_20130112'
-  #output_class = :critical
+  fetch_from = ARGV.shift
+  fetch_to = ARGV.shift
+  output_class = ARGV.shift.to_sym
 
   shift = 1
   short_range = 5
@@ -121,14 +69,11 @@ EventMachine.run do
       normalized_mid = compress(sample[:mid_term])
       normalized_long = compress(sample[:long_term])
   
-      #puts normalized_short.length
-      #puts normalized_long.length
-  
       #puts "Setting output value"
       output_map = {
-        :normal   => [-1,-1,1],
-        :warning  => [-1,1,-1],
-        :critical => [1,-1,-1] }
+        :normal   => [0,0,1],
+        :warning  => [0,1,0],
+        :critical => [1,0,0] }
     
       iter.return({ :input => [normalized_short, normalized_mid, normalized_long].flatten, :output => output_map[output_class] })
     end
@@ -141,7 +86,11 @@ EventMachine.run do
 
     # Read current training data from file
     training_file = File.join File.dirname(__FILE__), "..", "ext", "training.dat"
+    validation_file = File.join File.dirname(__FILE__), "..", "ext", "validation.dat"
+    test_file = File.join File.dirname(__FILE__), "..", "ext", "test.dat"
     training_set = []
+    validation_set = []
+    test_set = []
 
     File.open(training_file, 'r') do |training_data|
       training_data.gets
@@ -152,16 +101,52 @@ EventMachine.run do
       end
     end if File.exists? training_file
 
+    File.open(validation_file, 'r') do |training_data|
+      training_data.gets
+      while (input_sample = training_data.gets)
+        output_sample = training_data.gets
+        validation_set << { :input => input_sample.split(' ').map { |i| i.to_f }, 
+                          :output => output_sample.split(' ').map{ |o| o.to_f } }
+      end
+    end if File.exists? validation_file
+
+    File.open(test_file, 'r') do |training_data|
+      training_data.gets
+      while (input_sample = training_data.gets)
+        output_sample = training_data.gets
+        test_set << { :input => input_sample.split(' ').map { |i| i.to_f }, 
+                      :output => output_sample.split(' ').map{ |o| o.to_f } }
+      end
+    end if File.exists? test_file
+
+    # Scramble array
+    samples.shuffle!
+
     # Add samples to current training data
-    training_set = training_set.concat samples
+    training_set = training_set.concat samples[0..(samples.length * 0.70).floor]
+    validation_set = validation_set.concat samples[(samples.length * 0.70).ceil..(samples.length * 0.90).floor]
+    test_set = test_set.concat samples[(samples.length * 0.90).ceil..-1]
 
-    # TODO (Scramble array)
-    #training_set.shuffle!
-
-    # Write training data to file
+    # Write training, validation and test data to file
     File.open(training_file, 'w') do |training_data|
       training_data.puts [training_set.length, training_set[0][:input].length, training_set[0][:output].length].join(' ')
       training_set.each do |training_sample|
+        training_data.puts(training_sample[:input].join(' '))
+        training_data.puts(training_sample[:output].join(' '))
+      end
+    end
+
+    File.open(validation_file, 'w') do |training_data|
+      training_data.puts [validation_set.length, validation_set[0][:input].length, validation_set[0][:output].length].join(' ')
+      validation_set.each do |training_sample|
+        training_data.puts(training_sample[:input].join(' '))
+        training_data.puts(training_sample[:output].join(' '))
+      end
+    end
+
+    File.open(test_file, 'w') do |training_data|
+      training_data.puts [test_set.length, test_set[0][:input].length, test_set[0][:output].length].join(' ')
+      test_set.each do |training_sample|
         training_data.puts(training_sample[:input].join(' '))
         training_data.puts(training_sample[:output].join(' '))
       end
